@@ -14,7 +14,7 @@ public class Solver {
     public void createInitialPopulation() {
         Random randomInt = new Random();
 
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 1; ++i) {
 
             Individual individual = new Individual();
 
@@ -28,57 +28,75 @@ public class Solver {
 
     }
 
-    public boolean checkRight(Individual individual, int position) {
-        boolean isAttacked = false;
-
-        if (position % 8 == 0) {
-            for (int i = 1; i <= 8 - (position % 8) - 1; ++i) {
-                if (individual.chromosome.get(position + i) == 1) {
-                    isAttacked = true;
-                    break;
-                }
+    public int checkRight(Individual individual, int index) {
+        for (int i = 0; i < 8; ++i) {
+            if ((index + i) % 8 == 7) {
+                return 1;
             }
-        } else {
-            for (int i = 1; i <= 8 - (position % 8); ++i) {
-                if (individual.chromosome.get(position + i) == 1) {
-                    isAttacked = true;
-                    break;
-                }
+            // index + i + i to make sure we are not considering our own position, the if above assures it doesn't crash
+            if (individual.chromosome.get(index + i + 1) == 1) {
+                return 0;
             }
         }
 
-        return isAttacked;
+        return 1;
     }
 
-    public boolean checkLeft(Individual individual, int position) {
-        boolean isAttacked = false;
-
-        if (position % 8 == 7) {
-            System.out.println("Left Corner case");
-            for (int i = 1; i <= (position % 8); ++i) {
-                if (individual.chromosome.get(position - i) == 1) {
-                    isAttacked = true;
-                }
+    public int checkLeft(Individual individual, int index) {
+        for (int i = 0; i < 8; ++i) {
+            if ((index - i) % 8 == 0) {
+                return 1;
             }
-        } else {
-            for (int i = 1; i <= (position % 8) - 1; ++i) {
-                if (individual.chromosome.get(position - i) == 1) {
-                    isAttacked = true;
-                }
+            // index - i - i to make sure we are not considering our own position, the if above assures it doesn't crash
+            if (individual.chromosome.get(index - i - 1) == 1) {
+                return 0;
             }
         }
 
-        return isAttacked;
+        return 1;
     }
 
-    public double geneEvaluation(Individual individual, int position) {
-        double score = 0;
-
-        if (!checkRight(individual, position)) {
-            ++score;
+    public int checkDownwards(Individual individual, int index) {
+        for (int i = 1; i < 8; ++i) {
+            if (index + i * 8 >= 64) {
+                return 1;
+            }
+            if (individual.chromosome.get(index + i * 8) == 1) {
+                return 0;
+            }
         }
 
-        if (!checkLeft(individual, position)) {
+        return 1;
+    }
+
+    public int checkUpwards(Individual individual, int index) {
+        for (int i = 1; i < 8; ++i) {
+            if (index - i * 8 < 0) {
+                return 1;
+            }
+            if (individual.chromosome.get(index - i * 8) == 1) {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
+    public int checkUpwardsRight(Individual individual, int index) {
+        for (int i = 1; i < 8; ++i) {
+            if (index - i * 8 < 0) {
+
+            }
+        }
+        
+        return 1;
+    }
+
+    public int geneEvaluation(Individual individual, int index) {
+        int score = 0;
+
+        if (checkRight(individual, index) == 1 && checkLeft(individual, index) == 1 && checkDownwards(individual, index) == 1 && checkUpwards(individual, index) == 1) {
+            System.out.println("Updating ranking...");
             ++score;
         }
 
@@ -90,14 +108,17 @@ public class Solver {
 
         for (Individual individual : population) {
             int count = 0;
+            double ranking = 0;
+            System.out.println(individual);
             for (Integer gene : individual.chromosome) {
                 if (gene == 1) { // is a queen
-                    System.out.println("Evaluating position " + count);
-                    individual.ranking = geneEvaluation(individual, individual.chromosome.get(count));
+                    System.out.println("======================");
+                    System.out.println("Evaluating index " + count);
+                    geneEvaluation(individual, count);
+                    System.out.println("======================");
                 }
                 ++count;
             }
-            System.out.println(individual);
             // validate population
         }
 
