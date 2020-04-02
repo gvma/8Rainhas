@@ -1,9 +1,9 @@
 import java.util.ArrayList;
 
-public class Individual {
+public class Individual implements Comparable<Individual> {
 
     public ArrayList<Integer> chromosome;
-    public double ranking;
+    public int ranking;
 
     public Individual() {
         chromosome = new ArrayList<>();
@@ -17,10 +17,20 @@ public class Individual {
         String chromossome = "";
         for (int i = 0; i < 64; ++i) {
             if (i % 8 == 0) {
-                chromossome += "\n";
+                chromossome += "\n\t\t";
             }
-            chromossome += this.chromosome.get(i);
+            chromossome += this.chromosome.get(i) +  " ";
         }
-        return "Individual {\nranking: \"" + ranking + "\",\nchromosome:\n\"" + chromossome + "\"\n}";
+        return "Individual {\n\tranking: \"" + ranking + "\",\n\tchromosome:\n\t" + chromossome + "\n\t\n}";
+    }
+
+    @Override
+    public int compareTo(Individual individual) {
+        if (this.ranking > individual.ranking) {
+            return 1;
+        } else if (this.ranking < individual.ranking) {
+            return -1;
+        }
+        return 0;
     }
 }
