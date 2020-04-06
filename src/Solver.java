@@ -7,15 +7,26 @@ public class Solver {
 
     public void run() {
         long start = System.nanoTime();
+        System.out.println("Creating initial population!");
         createInitialPopulation();
+
+        System.out.println("Evaluating initial population");
         populationEvaluation();
+
         Individual[] sorted = new Individual[50];
         int cycles = 1;
         while (!populationRanking(sorted) && ++cycles != MAX_CYCLES) {
             removeIndividualsFromPopulation();
+
+            System.out.println("Starting crossover!");
             crossover(sorted);
+
+            System.out.println("Mutating!");
             mutation();
+
             resetRanking();
+
+            System.out.println("Evaluating population!");
             populationEvaluation();
         }
         if (cycles == MAX_CYCLES) {
@@ -35,9 +46,12 @@ public class Solver {
     public boolean populationRanking(Individual[] sorted) {
         for (int i = 0; i < 50; ++i) {
             if (population.get(i).ranking == 8) {
-                System.out.println("Ranking 8!\nHere's the individual:\n");
+                System.out.println("Ranking 8!\nHere's the individual:");
                 System.out.println(population.get(i));
                 return true;
+            }
+            if (population.get(i).ranking > 6) {
+                System.out.println(population.get(i));
             }
             sorted[i] = population.get(i);
         }
@@ -70,25 +84,131 @@ public class Solver {
         population = new ArrayList<>();
     }
 
-    public void crossover(Individual[] sorted) {
-        // 20 best individuals
-        for (int i = 29; i < 50; ++i) {
-            population.add(sorted[i]);
-        }
-
-        // 5 worst individuals
-        for (int i = 0; i < 5; ++i) {
-            population.add(sorted[i]);
-        }
-
-        for (int i = 0; i < 25; ++i) {
-            Individual worst = sorted[i], best = sorted[49 - i];
-            Individual individual = new Individual();
-            for (int j = 0; j < 32; ++j) {
-                individual.chromosome.set(j, best.chromosome.get(63 - j));
-                individual.chromosome.set(63 - j, worst.chromosome.get(j));
+    public List<Individual> selectRandomPairs() {
+        List<Individual> pairs = new ArrayList<>();
+        boolean[] selected = new boolean[population.size()];
+        Random random = new Random();
+        int position;
+        for (int i = 0; i < population.size(); ++i) {
+            position = Math.abs(random.nextInt() % population.size());
+            while (selected[position]) {
+                position = Math.abs(random.nextInt() % population.size());
             }
-            population.add(individual);
+            pairs.add(population.get(position));
+            selected[position] = true;
+        }
+        return pairs;
+    }
+
+    public Individual merge(Individual left, Individual right, int mode) {
+        Individual individual = new Individual();
+        int index = 0;
+        if (mode == 1) {
+            for (int i = 0; i < 32; ++i) {
+                individual.chromosome.set(index++, left.chromosome.get(i));
+            }
+            for (int i = 0; i < 32; ++i) {
+                individual.chromosome.set(index++, right.chromosome.get(i));
+            }
+        } else if (mode == 2) {
+            for (int i = 0; i < 32; ++i) {
+                individual.chromosome.set(index++, left.chromosome.get(i));
+            }
+            for (int i = 32; i < 64; ++i) {
+                individual.chromosome.set(index++, right.chromosome.get(i));
+            }
+        } else if (mode == 3) {
+            for (int i = 32; i < 64; ++i) {
+                individual.chromosome.set(index++, left.chromosome.get(i));
+            }
+            for (int i = 0; i < 32; ++i) {
+                individual.chromosome.set(index++, right.chromosome.get(i));
+            }
+        } else if (mode == 4) {
+            for (int i = 32; i < 64; ++i) {
+                individual.chromosome.set(index++, left.chromosome.get(i));
+            }
+            for (int i = 32; i < 64; ++i) {
+                individual.chromosome.set(index++, right.chromosome.get(i));
+            }
+        }
+        return individual;
+    }
+
+    public Individual getSlice(int firstIndex, int lastIndex, Individual selectedIndividual) {
+        Individual individual = new Individual();
+        for (int i = firstIndex; i < lastIndex; ++i) {
+            individual.chromosome.set(i, selectedIndividual.chromosome.get(i));
+        }
+        return individual;
+    }
+
+    public void addNewGeneration(Individual[] sorted) {
+        // 20 best individuals
+        for (int i = 40; i < 50; ++i) {
+            population.add(sorted[i]);
+        }
+
+        // 5 pairs amongst the 10 best individuals
+        List<Individual> pairs = selectRandomPairs();
+        int fatherIndex = 0, motherIndex = 1;
+
+        for (int i = 0; i < 5; ++i) {
+            Individual p1 = getSlice(0, 32, pairs.get(fatherIndex));
+            Individual p2 = getSlice(32, 64, pairs.get(fatherIndex));
+            Individual m1 = getSlice(0, 32, pairs.get(motherIndex));
+            Individual m2 = getSlice(32, 64, pairs.get(motherIndex));
+
+            population.add(merge(p1, m1, 1));
+            population.add(merge(p1, m2, 2));
+            population.add(merge(p2, m1, 3));
+            population.add(merge(p2, m2, 4));
+            population.add(merge(m1, p1, 1));
+            population.add(merge(m1, p2, 2));
+            population.add(merge(m2, p1, 3));
+            population.add(merge(m2, p1, 4));
+
+            fatherIndex = motherIndex + 1;
+            motherIndex = fatherIndex + 1;
+        }
+    }
+
+    public void crossover(Individual[] sorted) {
+        addNewGeneration(sorted);
+        fixNewPopulation();
+    }
+
+    public int queensInChromosome(Individual individual) {
+        int queens = 0;
+        for (int i = 0; i < 64; ++i) {
+            if (individual.chromosome.get(i) == 1) {
+                ++queens;
+            }
+        }
+        return queens;
+    }
+
+    public void fixNewPopulation() {
+        Random random = new Random();
+        for (Individual individual : population) {
+            int queens = queensInChromosome(individual);
+            if (queens > 8) {
+                for (int i = 0; i < queens - 8; ++i) {
+                    int position = Math.abs(random.nextInt() % 64);
+                    while (individual.chromosome.get(position) == 0) {
+                        position = Math.abs(random.nextInt() % 64);
+                    }
+                    individual.chromosome.set(position, 0);
+                }
+            } else if (queens < 8) {
+                for (int i = 0; i < 8 - queens; ++i) {
+                    int position = Math.abs(random.nextInt() % 64);
+                    while (individual.chromosome.get(position) == 1) {
+                        position = Math.abs(random.nextInt() % 64);
+                    }
+                    individual.chromosome.set(position, 1);
+                }
+            }
         }
     }
 

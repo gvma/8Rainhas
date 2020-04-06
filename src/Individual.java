@@ -21,7 +21,7 @@ public class Individual implements Comparable<Individual> {
             }
             chromossome += this.chromosome.get(i) +  " ";
         }
-        return "Individual {\n\tranking: \"" + ranking + "\",\n\tchromosome:\n\t" + chromossome + "\n\t\n}";
+        return "Individual {\n\tranking: \"" + ranking + "\",\n\tchromosome:\t" + chromossome + "\t\n}";
     }
 
     @Override
